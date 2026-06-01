@@ -1,23 +1,63 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: amazon-emulator-postgres
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
     restart: unless-stopped
     ports:
-      - "5433:5432"
+      - "8080:80"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    restart: unless-stopped
+    command: sh -c "npx prisma db push && npx tsx src/index.ts"
+    environment:
+      PORT: 4000
+      AUTH_TOKEN: fake-token
+      DATABASE_URL: postgresql://amazon:amazon@postgres:5432/amazon_emulator?schema=public
+      QUEUE_DRIVER: bullmq
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LISTING_PROCESSING_DELAY_MS: 5000
+      RATE_LIMIT_WINDOW_MS: 60000
+      RATE_LIMIT_MAX_REQUESTS: 1000
+      WEBHOOK_MAX_ATTEMPTS: 3
+      WEBHOOK_RETRY_DELAY_MS: 1000
+      WEBHOOK_TIMEOUT_MS: 3000
+      ERROR_SIMULATION_RULES: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_USER: amazon
       POSTGRES_PASSWORD: amazon
       POSTGRES_DB: amazon_emulator
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amazon -d amazon_emulator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
-    container_name: amazon-emulator-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres-data:
