@@ -1,4 +1,4 @@
-import { prisma } from '../database/prisma'
+import { AuditLogRepository } from './audit-log-repository'
 
 export type RequestLogEntry = {
   method: string
@@ -9,14 +9,18 @@ export type RequestLogEntry = {
 }
 
 export class RequestLogRepository {
+  constructor(
+    private readonly auditLogs: AuditLogRepository
+  ) {}
+
   async append(entry: RequestLogEntry) {
-    await prisma.requestLog.create({
-      data: {
-        method: entry.method,
-        url: entry.url,
-        timestamp: new Date(entry.timestamp),
-        responseTimeMs: entry.responseTimeMs,
-        statusCode: entry.statusCode
+    await this.auditLogs.add({
+      action: 'HTTP_REQUEST',
+      resourceType: 'request',
+      resourceId: `${entry.method} ${entry.url}`,
+      metadata: {
+        ...entry,
+        source: 'request-logger'
       }
     })
   }

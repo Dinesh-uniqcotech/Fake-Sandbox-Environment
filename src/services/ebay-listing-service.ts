@@ -29,6 +29,7 @@ export class EbayListingService {
       submissionId: randomUUID(),
       sellerId: input.sellerId,
       sku: input.sku,
+      inventorySku: input.inventorySku ?? input.sku,
       itemId: input.itemId,
       status: 'SUBMITTED',
       listingType: input.listingType,

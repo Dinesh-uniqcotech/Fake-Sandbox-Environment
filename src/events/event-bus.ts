@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { EventRepository } from '../repositories/event-repository'
-import { EmulatorEventName } from '../types/events'
+import { EmulatorEvent } from '../types/events'
 
 export class EventBus {
   constructor(
@@ -8,8 +8,8 @@ export class EventBus {
   ) {}
 
   async publish(input: {
-    event: EmulatorEventName
-    resourceType: 'listing' | 'inventory' | 'webhook'
+    event: EmulatorEvent['event']
+    resourceType: EmulatorEvent['resourceType']
     resourceId: string
     payload: Record<string, unknown>
   }) {

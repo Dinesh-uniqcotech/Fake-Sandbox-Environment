@@ -13,13 +13,21 @@ import { EbayListingRepository } from './repositories/ebay-listing-repository'
 import { EbayListingService } from './services/ebay-listing-service'
 import { GenericMarketplaceListingRepository } from './repositories/generic-marketplace-listing-repository'
 import { GenericMarketplaceListingService } from './services/generic-marketplace-listing-service'
+import { MarketplaceFieldMappingRepository } from './repositories/marketplace-field-mapping-repository'
+import { MarketplaceFieldMappingService } from './services/marketplace-field-mapping-service'
+import { OrderRepository } from './repositories/order-repository'
+import { OrderSimulatorService } from './services/order-simulator-service'
 import { ListingStateMachine } from './state-machines/listing-state-machine'
 import { createListingLifecycleQueue } from './queues/queue-factory'
 import { RequestLogRepository } from './repositories/request-log-repository'
 import { WebhookDeliveryRepository } from './repositories/webhook-delivery-repository'
 import { WebhookService } from './webhooks/webhook-service'
+import { AuditLogRepository } from './repositories/audit-log-repository'
 
-const eventRepository = new EventRepository()
+const auditLogRepository = new AuditLogRepository()
+const eventRepository = new EventRepository(
+  auditLogRepository
+)
 const listingRepository = new ListingRepository()
 const flipkartListingRepository =
   new FlipkartListingRepository()
@@ -29,9 +37,12 @@ const ebayListingRepository =
   new EbayListingRepository()
 const genericMarketplaceListingRepository =
   new GenericMarketplaceListingRepository()
+const marketplaceFieldMappingRepository =
+  new MarketplaceFieldMappingRepository()
 const inventoryRepository = new InventoryRepository()
+const orderRepository = new OrderRepository()
 const webhookDeliveryRepository =
-  new WebhookDeliveryRepository()
+  new WebhookDeliveryRepository(auditLogRepository)
 
 const eventBus = new EventBus(eventRepository)
 const webhookService = new WebhookService(
@@ -42,7 +53,9 @@ const listingLifecycleQueue =
   createListingLifecycleQueue()
 
 export const container = {
-  requestLogs: new RequestLogRepository(),
+  requestLogs: new RequestLogRepository(
+    auditLogRepository
+  ),
   listings: new ListingService(
     listingRepository,
     new ListingStateMachine(),
@@ -82,6 +95,15 @@ export const container = {
   inventory: new InventoryService(
     inventoryRepository,
     eventBus
+  ),
+  marketplaceFieldMappings:
+    new MarketplaceFieldMappingService(
+      marketplaceFieldMappingRepository
+    ),
+  orderSimulator: new OrderSimulatorService(
+    orderRepository,
+    eventBus,
+    webhookService
   ),
   dashboard: new DashboardService(
     listingRepository,

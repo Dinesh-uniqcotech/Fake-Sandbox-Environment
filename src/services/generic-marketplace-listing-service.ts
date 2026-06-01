@@ -35,6 +35,7 @@ export class GenericMarketplaceListingService {
       submissionId: randomUUID(),
       sellerId: input.sellerId,
       sku: input.sku,
+      inventorySku: input.inventorySku ?? input.sku,
       status: 'SUBMITTED',
       price: input.price,
       quantity: input.quantity,

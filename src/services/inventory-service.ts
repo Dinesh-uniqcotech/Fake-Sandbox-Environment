@@ -8,21 +8,27 @@ export class InventoryService {
     private readonly events: EventBus
   ) {}
 
-  findAll() {
-    return this.inventory.findAll()
+  findAll(options?: {
+    limit?: number
+    offset?: number
+    below?: number
+  }) {
+    return this.inventory.findAll(options)
   }
 
-  getBySku(platform: InventoryItem['platform'], sku: string) {
-    return this.inventory.findBySku(platform, sku)
+  getSummary() {
+    return this.inventory.getSummary()
+  }
+
+  getBySku(sku: string) {
+    return this.inventory.findBySku(sku)
   }
 
   async updateQuantity(
-    platform: InventoryItem['platform'],
     sku: string,
     quantity: number
   ) {
     const item = await this.inventory.upsert({
-      platform,
       sku,
       quantity,
       updatedAt: new Date().toISOString()
@@ -31,7 +37,7 @@ export class InventoryService {
     await this.events.publish({
       event: 'INVENTORY_UPDATED',
       resourceType: 'inventory',
-      resourceId: `${platform}:${sku}`,
+      resourceId: sku,
       payload: item
     })
 

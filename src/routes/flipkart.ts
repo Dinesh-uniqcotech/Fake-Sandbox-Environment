@@ -33,6 +33,7 @@ export const createFlipkartRouter = (
     const listing = await listings.create({
       sellerId,
       sku,
+      inventorySku: result.data.inventorySku ?? sku,
       payload: result.data,
       webhookUrl: result.data.webhookUrl,
       channelSkuId: result.data.channelSkuId,

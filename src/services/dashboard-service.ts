@@ -1,4 +1,5 @@
 import { ListingLifecycleQueue } from '../queues/queue.types'
+import { prisma } from '../database/prisma'
 import { EventRepository } from '../repositories/event-repository'
 import { EbayListingRepository } from '../repositories/ebay-listing-repository'
 import { FlipkartListingRepository } from '../repositories/flipkart-listing-repository'
@@ -35,7 +36,9 @@ const marketplacePlatforms = [
   'aliexpress',
   'rakuten',
   'shopee',
-  'temu'
+  'temu',
+  'best-buy',
+  'wayfair'
 ] as const
 
 type MarketplacePlatform =
@@ -135,15 +138,21 @@ export class DashboardService {
           aliexpress: 0,
           rakuten: 0,
           shopee: 0,
-          temu: 0
+          temu: 0,
+          'best-buy': 0,
+          wayfair: 0
         }
       )
     const inventoryByPlatform =
       marketplacePlatforms.reduce<Record<MarketplacePlatform, number>>(
         (acc, platform) => {
-          acc[platform] = inventory.filter(
-            item => item.platform === platform
-          ).length
+          acc[platform] = new Set(
+            listings
+              .filter(
+                listing => listing.platform === platform
+              )
+              .map(listing => listing.inventorySku)
+          ).size
           return acc
         },
         {
@@ -159,7 +168,9 @@ export class DashboardService {
           aliexpress: 0,
           rakuten: 0,
           shopee: 0,
-          temu: 0
+          temu: 0,
+          'best-buy': 0,
+          wayfair: 0
         }
       )
     const webhooksByPlatform =
@@ -183,7 +194,9 @@ export class DashboardService {
           aliexpress: 0,
           rakuten: 0,
           shopee: 0,
-          temu: 0
+          temu: 0,
+          'best-buy': 0,
+          wayfair: 0
         }
       )
 
@@ -229,10 +242,37 @@ export class DashboardService {
       id: listing.id,
       platform: listing.platform,
       sku: listing.sku,
+      inventorySku: listing.inventorySku,
       sellerId: listing.sellerId,
       status: listing.status,
       createdAt: listing.createdAt,
       updatedAt: listing.updatedAt
+    }))
+  }
+
+  async getProcessingStatusPage(options: {
+    limit: number
+    offset: number
+    inventorySku?: string
+  }) {
+    const listings = await prisma.listing.findMany({
+      where: options.inventorySku
+        ? { inventorySku: options.inventorySku }
+        : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: options.limit,
+      skip: options.offset
+    })
+
+    return listings.map(listing => ({
+      id: listing.id,
+      platform: listing.platform,
+      sku: listing.sku,
+      inventorySku: listing.inventorySku,
+      sellerId: listing.sellerId,
+      status: listing.status,
+      createdAt: listing.createdAt.toISOString(),
+      updatedAt: listing.updatedAt.toISOString()
     }))
   }
 

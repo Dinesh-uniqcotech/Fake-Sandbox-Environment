@@ -10,6 +10,8 @@ import { createFlipkartRouter } from './routes/flipkart'
 import { createWalmartRouter } from './routes/walmart'
 import { createEbayRouter } from './routes/ebay'
 import { createMarketplaceListingsRouter } from './routes/marketplace-listings'
+import { createMarketplaceFieldMappingsRouter } from './routes/marketplace-field-mappings'
+import { createMarketplaceSimulatorRouter } from './routes/marketplace-simulator'
 import { errorSimulatorMiddleware } from './middleware/error-simulator'
 import { rateLimitMiddleware } from './middleware/rate-limit'
 import { registerErrorHandler } from './middleware/error-handler'
@@ -47,6 +49,18 @@ export const createApp = () => {
     '/',
     createMarketplaceListingsRouter(
       container.genericMarketplaceListings
+    )
+  )
+  app.route(
+    '/',
+    createMarketplaceFieldMappingsRouter(
+      container.marketplaceFieldMappings
+    )
+  )
+  app.route(
+    '/',
+    createMarketplaceSimulatorRouter(
+      container.orderSimulator
     )
   )
   app.route('/', createInventoryRouter(container.inventory))

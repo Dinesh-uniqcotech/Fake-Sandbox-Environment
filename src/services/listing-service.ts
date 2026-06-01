@@ -29,8 +29,15 @@ export class ListingService {
       submissionId: randomUUID(),
       sellerId: input.sellerId,
       sku: input.sku,
+      inventorySku: input.inventorySku ?? input.sku,
       status: 'SUBMITTED',
       payload: input.payload,
+      platformFields:
+        typeof input.payload === 'object' &&
+        input.payload !== null &&
+        !Array.isArray(input.payload)
+          ? (input.payload as Record<string, unknown>)
+          : {},
       webhookUrl: input.webhookUrl,
       createdAt: now,
       updatedAt: now
@@ -44,7 +51,8 @@ export class ListingService {
       resourceId: listing.id,
       payload: {
         sku: listing.sku,
-        sellerId: listing.sellerId
+        sellerId: listing.sellerId,
+        platform: listing.platform
       }
     })
 
@@ -107,11 +115,12 @@ export class ListingService {
       event: 'LISTING_DISCOVERABLE',
       resourceType: 'listing',
       resourceId: discoverable.id,
-      payload: {
-        sku: discoverable.sku,
-        status: discoverable.status
-      }
-    })
+        payload: {
+          sku: discoverable.sku,
+          status: discoverable.status,
+          platform: discoverable.platform
+        }
+      })
 
     if (discoverable.webhookUrl) {
       await this.webhooks.deliver(
@@ -119,7 +128,8 @@ export class ListingService {
         {
           event: 'LISTING_DISCOVERABLE',
           sku: discoverable.sku,
-          status: discoverable.status
+          status: discoverable.status,
+          platform: discoverable.platform
         }
       )
     }
@@ -152,7 +162,8 @@ export class ListingService {
         resourceId: listing.id,
         payload: {
           sku: listing.sku,
-          status: nextStatus
+          status: nextStatus,
+          platform: listing.platform
         }
       })
     }

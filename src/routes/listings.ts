@@ -44,6 +44,7 @@ export const createListingsRouter = (
       const listing = await listings.create({
         sellerId,
         sku,
+        inventorySku: result.data.inventorySku ?? sku,
         payload: result.data,
         webhookUrl: result.data.webhookUrl
       })

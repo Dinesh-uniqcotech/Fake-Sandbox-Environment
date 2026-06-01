@@ -1,27 +1,44 @@
-import { prisma } from '../database/prisma'
+import { AuditLogRepository } from './audit-log-repository'
 import { EmulatorEvent } from '../types/events'
-import { mapEvent } from './prisma-mappers'
 
 export class EventRepository {
+  constructor(
+    private readonly auditLogs: AuditLogRepository
+  ) {}
+
   async add(event: EmulatorEvent) {
-    const saved = await prisma.emulatorEvent.create({
-      data: {
-        id: event.id,
-        event: event.event,
-        resourceType: event.resourceType,
-        resourceId: event.resourceId,
-        payload: event.payload as any
+    await this.auditLogs.add({
+      action: event.event,
+      resourceType: event.resourceType,
+      resourceId: event.resourceId,
+      after: event.payload,
+      metadata: {
+        eventId: event.id,
+        source: 'event-bus'
       }
     })
 
-    return mapEvent(saved)
+    return event
   }
 
   async findAll() {
-    const events = await prisma.emulatorEvent.findMany({
-      orderBy: { createdAt: 'desc' }
-    })
+    const logs = await this.auditLogs.findAll()
 
-    return events.map(mapEvent)
+    return logs
+      .filter(log => log.metadata.source === 'event-bus')
+      .map(log => ({
+        id: String(log.metadata.eventId ?? log.id),
+        event: log.action as EmulatorEvent['event'],
+        resourceType:
+          log.resourceType as EmulatorEvent['resourceType'],
+        resourceId: log.resourceId ?? '',
+        payload:
+          typeof log.after === 'object' &&
+          log.after !== null &&
+          !Array.isArray(log.after)
+            ? (log.after as Record<string, unknown>)
+            : {},
+        createdAt: log.createdAt
+      }))
   }
 }

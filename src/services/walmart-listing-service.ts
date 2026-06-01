@@ -29,6 +29,7 @@ export class WalmartListingService {
       submissionId: randomUUID(),
       sellerId: input.sellerId,
       sku: input.sku,
+      inventorySku: input.inventorySku ?? input.sku,
       itemId: input.itemId,
       status: 'SUBMITTED',
       price: input.price,

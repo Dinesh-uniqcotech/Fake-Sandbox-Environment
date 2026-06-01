@@ -9,9 +9,10 @@ import {
   aliexpressListingSchema,
   rakutenListingSchema,
   shopeeListingSchema,
-  temuListingSchema
+  temuListingSchema,
+  bestBuyListingSchema,
+  wayfairListingSchema
 } from '../validators/listing-validator'
-import { GenericMarketplaceListing } from '../types/listing'
 import { parseJsonBody } from './request-json'
 
 const schemas = {
@@ -23,11 +24,12 @@ const schemas = {
   aliexpress: aliexpressListingSchema,
   rakuten: rakutenListingSchema,
   shopee: shopeeListingSchema,
-  temu: temuListingSchema
+  temu: temuListingSchema,
+  'best-buy': bestBuyListingSchema,
+  wayfair: wayfairListingSchema
 } as const
 
-type GenericPlatform =
-  GenericMarketplaceListing['platform']
+type GenericPlatform = keyof typeof schemas
 
 const isGenericPlatform = (
   platform: string
@@ -88,6 +90,7 @@ export const createMarketplaceListingsRouter = (
       platform,
       sellerId,
       sku,
+      inventorySku: result.data.inventorySku ?? sku,
       payload: result.data,
       webhookUrl: result.data.webhookUrl,
       price: result.data.price,

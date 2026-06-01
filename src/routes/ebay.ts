@@ -33,6 +33,7 @@ export const createEbayRouter = (
     const listing = await listings.create({
       sellerId,
       sku,
+      inventorySku: result.data.inventorySku ?? sku,
       payload: result.data,
       webhookUrl: result.data.webhookUrl,
       itemId: result.data.itemId,

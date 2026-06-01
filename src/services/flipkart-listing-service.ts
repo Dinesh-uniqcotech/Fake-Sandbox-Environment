@@ -29,6 +29,7 @@ export class FlipkartListingService {
       submissionId: randomUUID(),
       sellerId: input.sellerId,
       sku: input.sku,
+      inventorySku: input.inventorySku ?? input.sku,
       channelSkuId: input.channelSkuId,
       productId: input.productId,
       status: 'SUBMITTED',

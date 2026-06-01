@@ -22,6 +22,8 @@ export type MarketplacePlatform =
   | 'rakuten'
   | 'shopee'
   | 'temu'
+  | 'best-buy'
+  | 'wayfair'
 
 export type ListingPlatform =
   | CorePlatform
@@ -32,9 +34,11 @@ export type Listing = {
   platform: CorePlatform
   sellerId: string
   sku: string
+  inventorySku: string
   status: ListingStatus
   submissionId: string
   payload: unknown
+  platformFields: Record<string, unknown>
   webhookUrl?: string
   createdAt: string
   updatedAt?: string
@@ -43,6 +47,7 @@ export type Listing = {
 export type CreateListingInput = {
   sellerId: string
   sku: string
+  inventorySku?: string
   payload: unknown
   webhookUrl?: string
 }
@@ -52,6 +57,7 @@ export type FlipkartListing = {
   platform: 'flipkart'
   sellerId: string
   sku: string
+  inventorySku: string
   channelSkuId?: string
   productId?: string
   submissionId: string
@@ -70,6 +76,7 @@ export type FlipkartListing = {
 export type CreateFlipkartListingInput = {
   sellerId: string
   sku: string
+  inventorySku?: string
   payload: unknown
   webhookUrl?: string
   channelSkuId?: string
@@ -86,6 +93,7 @@ export type WalmartListing = {
   platform: 'walmart'
   sellerId: string
   sku: string
+  inventorySku: string
   itemId?: string
   submissionId: string
   status: ListingStatus
@@ -104,6 +112,7 @@ export type WalmartListing = {
 export type CreateWalmartListingInput = {
   sellerId: string
   sku: string
+  inventorySku?: string
   payload: unknown
   webhookUrl?: string
   itemId?: string
@@ -120,6 +129,7 @@ export type EbayListing = {
   platform: 'ebay'
   sellerId: string
   sku: string
+  inventorySku: string
   itemId?: string
   submissionId: string
   status: ListingStatus
@@ -138,6 +148,7 @@ export type EbayListing = {
 export type CreateEbayListingInput = {
   sellerId: string
   sku: string
+  inventorySku?: string
   payload: unknown
   webhookUrl?: string
   itemId?: string
@@ -151,12 +162,10 @@ export type CreateEbayListingInput = {
 
 export type GenericMarketplaceListing = {
   id: string
-  platform: Exclude<
-    MarketplacePlatform,
-    'flipkart' | 'walmart' | 'ebay'
-  >
+  platform: MarketplacePlatform
   sellerId: string
   sku: string
+  inventorySku: string
   submissionId: string
   status: ListingStatus
   price?: number
@@ -174,6 +183,7 @@ export type CreateGenericMarketplaceListingInput = {
   platform: GenericMarketplaceListing['platform']
   sellerId: string
   sku: string
+  inventorySku?: string
   payload: unknown
   webhookUrl?: string
   price?: number

@@ -1,41 +1,39 @@
-import { prisma } from '../database/prisma'
+import { AuditLogRepository } from './audit-log-repository'
 import { WebhookDelivery } from '../types/webhook'
-import { mapWebhookDelivery } from './prisma-mappers'
+
+const deliveries = new Map<string, WebhookDelivery>()
 
 export class WebhookDeliveryRepository {
+  constructor(
+    private readonly auditLogs: AuditLogRepository
+  ) {}
+
   async save(delivery: WebhookDelivery) {
-    const saved = await prisma.webhookDelivery.upsert({
-      where: { id: delivery.id },
-      create: {
-        id: delivery.id,
-        url: delivery.url,
+    const before = deliveries.get(delivery.id)
+    deliveries.set(delivery.id, delivery)
+
+    await this.auditLogs.add({
+      action: 'WEBHOOK_DELIVERY_SAVED',
+      resourceType: 'webhook',
+      resourceId: delivery.id,
+      before,
+      after: delivery,
+      metadata: {
+        source: 'webhook-delivery',
         event: delivery.event,
-        payload: delivery.payload as any,
         status: delivery.status,
-        attempts: delivery.attempts,
-        lastStatusCode: delivery.lastStatusCode,
-        lastError: delivery.lastError
-      },
-      update: {
-        url: delivery.url,
-        event: delivery.event,
-        payload: delivery.payload as any,
-        status: delivery.status,
-        attempts: delivery.attempts,
-        lastStatusCode: delivery.lastStatusCode,
-        lastError: delivery.lastError
+        attempts: delivery.attempts
       }
     })
 
-    return mapWebhookDelivery(saved)
+    return delivery
   }
 
   async findAll() {
-    const deliveries =
-      await prisma.webhookDelivery.findMany({
-        orderBy: { createdAt: 'desc' }
-      })
-
-    return deliveries.map(mapWebhookDelivery)
+    return Array.from(deliveries.values()).sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime()
+    )
   }
 }

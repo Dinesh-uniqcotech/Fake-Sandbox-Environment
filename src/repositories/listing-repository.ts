@@ -5,6 +5,7 @@ import { mapListing } from './prisma-mappers'
 export class ListingRepository {
   async findAll() {
     const listings = await prisma.listing.findMany({
+      where: { platform: 'amazon' },
       orderBy: { createdAt: 'desc' }
     })
 
@@ -13,7 +14,7 @@ export class ListingRepository {
 
   async findBySku(sku: string) {
     const listing = await prisma.listing.findFirst({
-      where: { sku }
+      where: { platform: 'amazon', sku }
     })
 
     return listing ? mapListing(listing) : undefined
@@ -21,7 +22,13 @@ export class ListingRepository {
 
   async findBySellerSku(sellerId: string, sku: string) {
     const listing = await prisma.listing.findUnique({
-      where: { sellerId_sku: { sellerId, sku } }
+      where: {
+        platform_sellerId_sku: {
+          platform: 'amazon',
+          sellerId,
+          sku
+        }
+      }
     })
 
     return listing ? mapListing(listing) : undefined
@@ -36,23 +43,34 @@ export class ListingRepository {
   }
 
   async save(listing: Listing) {
+    await this.upsertInventory(
+      listing.inventorySku,
+      this.quantityFromPayload(listing.payload)
+    )
+
     const saved = await prisma.listing.upsert({
       where: { id: listing.id },
       create: {
         id: listing.id,
+        platform: 'amazon',
         sellerId: listing.sellerId,
         sku: listing.sku,
+        inventorySku: listing.inventorySku,
         submissionId: listing.submissionId,
         status: listing.status,
         payload: listing.payload as any,
+        platformFields: listing.platformFields as any,
         webhookUrl: listing.webhookUrl
       },
       update: {
+        platform: 'amazon',
         sellerId: listing.sellerId,
         sku: listing.sku,
+        inventorySku: listing.inventorySku,
         submissionId: listing.submissionId,
         status: listing.status,
         payload: listing.payload as any,
+        platformFields: listing.platformFields as any,
         webhookUrl: listing.webhookUrl
       }
     })
@@ -78,7 +96,7 @@ export class ListingRepository {
 
   async deleteBySku(sku: string) {
     const result = await prisma.listing.deleteMany({
-      where: { sku }
+      where: { platform: 'amazon', sku }
     })
 
     return result.count > 0
@@ -90,5 +108,26 @@ export class ListingRepository {
     })
 
     return result.count > 0
+  }
+
+  private quantityFromPayload(payload: unknown) {
+    if (
+      typeof payload === 'object' &&
+      payload !== null &&
+      'quantity' in payload &&
+      typeof payload.quantity === 'number'
+    ) {
+      return payload.quantity
+    }
+
+    return 0
+  }
+
+  private upsertInventory(sku: string, quantity: number) {
+    return prisma.inventoryItem.upsert({
+      where: { sku },
+      create: { sku, quantity },
+      update: { quantity }
+    })
   }
 }
