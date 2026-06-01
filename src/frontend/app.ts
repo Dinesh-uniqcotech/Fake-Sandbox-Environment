@@ -38,12 +38,12 @@ type Listing = {
   sellerId: string
   sku: string
   inventorySku?: string
+  webhookUrl?: string
   status: string
   createdAt: string
 }
 
 type SimulatorListing = Listing & {
-  webhookUrl?: string
   inventory?: InventoryItem
 }
 
@@ -803,16 +803,32 @@ const state: {
   refreshTimer?: number
   toastTimer?: number
   listings: Listing[]
+  inventoryItems: InventoryItem[]
+  auditEvents: AuditEvent[]
   orders: OrderRecord[]
+  pages: {
+    listings: number
+    inventory: number
+    audit: number
+  }
 } = {
   token: 'fake-token',
   listings: [],
-  orders: []
+  inventoryItems: [],
+  auditEvents: [],
+  orders: [],
+  pages: {
+    listings: 1,
+    inventory: 1,
+    audit: 1
+  }
 }
 
 const els = {
   refreshButton:
     mustFind<HTMLButtonElement>('#refreshButton'),
+  topbar: mustFind<HTMLElement>('.topbar'),
+  pageTitle: mustFind<HTMLElement>('#pageTitle'),
   toast: mustFind<HTMLElement>('#toast'),
   navButtons:
     document.querySelectorAll<HTMLButtonElement>('.nav-button'),
@@ -833,6 +849,8 @@ const els = {
   recentEvents: mustFind<HTMLElement>('#recentEvents'),
   listingsTable:
     mustFind<HTMLTableSectionElement>('#listingsTable'),
+  listingsPagination:
+    mustFind<HTMLElement>('#listingsPagination'),
   listingForm: mustFind<HTMLFormElement>('#listingForm'),
   platformSelect:
     mustFind<HTMLSelectElement>('#platformSelect'),
@@ -867,6 +885,8 @@ const els = {
     mustFind<HTMLElement>('#inventoryLowCount'),
   inventoryTable:
     mustFind<HTMLTableSectionElement>('#inventoryTable'),
+  inventoryPagination:
+    mustFind<HTMLElement>('#inventoryPagination'),
   simulatorForm:
     mustFind<HTMLFormElement>('#simulatorForm'),
   simulatorPlatformSelect:
@@ -876,6 +896,8 @@ const els = {
   simulatorListingsTable:
     mustFind<HTMLTableSectionElement>('#simulatorListingsTable'),
   eventLog: mustFind<HTMLElement>('#eventLog'),
+  auditPagination:
+    mustFind<HTMLElement>('#auditPagination'),
   webhooksTable:
     mustFind<HTMLTableSectionElement>('#webhooksTable')
 }
@@ -1450,6 +1472,59 @@ const renderQueueMetrics = (metrics: QueueMetrics) => {
     .join('')
 }
 
+const pageSize = 10
+
+const pageItems = <T>(items: T[], page: number) =>
+  items.slice((page - 1) * pageSize, page * pageSize)
+
+const pageCountFor = (totalItems: number) =>
+  Math.max(1, Math.ceil(totalItems / pageSize))
+
+const normalizePage = (page: number, totalItems: number) =>
+  Math.min(Math.max(page, 1), pageCountFor(totalItems))
+
+const renderPagination = (
+  target: HTMLElement,
+  totalItems: number,
+  currentPage: number,
+  pageKey: keyof typeof state.pages
+) => {
+  const totalPages = pageCountFor(totalItems)
+
+  if (totalItems <= pageSize) {
+    target.innerHTML = ''
+    return
+  }
+
+  target.innerHTML = `
+    ${Array.from({ length: totalPages }, (_, index) => {
+      const page = index + 1
+
+      return `
+        <button
+          class="pagination-button ${page === currentPage ? 'is-active' : ''}"
+          type="button"
+          data-page-key="${pageKey}"
+          data-page="${page}"
+          aria-label="Page ${page}"
+          ${page === currentPage ? 'aria-current="page"' : ''}
+        >
+          ${page}
+        </button>
+      `
+    }).join('')}
+    <button
+      class="pagination-button"
+      type="button"
+      data-page-key="${pageKey}"
+      data-page="${currentPage + 1}"
+      ${currentPage >= totalPages ? 'disabled' : ''}
+    >
+      Next
+    </button>
+  `
+}
+
 const renderEvents = (
   target: HTMLElement,
   events: AuditEvent[],
@@ -1471,15 +1546,42 @@ const renderEvents = (
     : '<article class="event-item"><strong>No activity yet</strong><span>Audit entries will appear here.</span></article>'
 }
 
-const renderListings = (listings: Listing[]) => {
-  const sorted = listings.sort(
+const renderAuditPage = (events: AuditEvent[]) => {
+  const sorted = [...events].sort(
     (left, right) =>
       new Date(right.createdAt || 0).getTime() -
       new Date(left.createdAt || 0).getTime()
   )
+  const currentPage = normalizePage(
+    state.pages.audit,
+    sorted.length
+  )
 
-  els.listingsTable.innerHTML = sorted.length
-    ? sorted
+  state.pages.audit = currentPage
+  renderEvents(els.eventLog, pageItems(sorted, currentPage))
+  renderPagination(
+    els.auditPagination,
+    sorted.length,
+    currentPage,
+    'audit'
+  )
+}
+
+const renderListings = (listings: Listing[]) => {
+  const sorted = [...listings].sort(
+    (left, right) =>
+      new Date(right.createdAt || 0).getTime() -
+      new Date(left.createdAt || 0).getTime()
+  )
+  const currentPage = normalizePage(
+    state.pages.listings,
+    sorted.length
+  )
+  const visible = pageItems(sorted, currentPage)
+
+  state.pages.listings = currentPage
+  els.listingsTable.innerHTML = visible.length
+    ? visible
         .map(listing => `
           <tr>
             <td>${platformLabels[listing.platform] ?? listing.platform}</td>
@@ -1487,6 +1589,12 @@ const renderListings = (listings: Listing[]) => {
             <td>${listing.inventorySku ?? listing.sku}</td>
             <td>${listing.sellerId}</td>
             <td><span class="status-tag ${statusClass(listing.status)}">${listing.status}</span></td>
+            <td
+              class="webhook-cell ${listing.webhookUrl ? '' : 'is-empty'}"
+              title="${escapeAttribute(listing.webhookUrl ?? 'No webhook configured')}"
+            >
+              ${listing.webhookUrl ?? 'Not set'}
+            </td>
             <td>${formatDate(listing.createdAt)}</td>
             <td>
               <button class="delete-button" data-delete-id="${listing.id}" data-platform="${listing.platform}">Delete</button>
@@ -1494,7 +1602,13 @@ const renderListings = (listings: Listing[]) => {
           </tr>
         `)
         .join('')
-    : '<tr><td colspan="7">No listings found.</td></tr>'
+    : '<tr><td colspan="8">No listings found.</td></tr>'
+  renderPagination(
+    els.listingsPagination,
+    sorted.length,
+    currentPage,
+    'listings'
+  )
 }
 
 const renderSimulatorListings = (
@@ -1708,12 +1822,18 @@ const stockLabel = (quantity: number) => {
 }
 
 const renderInventoryTable = (items: InventoryItem[]) => {
-  const lowStock = items.sort(
+  const lowStock = [...items].sort(
     (left, right) => left.quantity - right.quantity
   )
+  const currentPage = normalizePage(
+    state.pages.inventory,
+    lowStock.length
+  )
+  const visible = pageItems(lowStock, currentPage)
 
-  els.inventoryTable.innerHTML = lowStock.length
-    ? lowStock
+  state.pages.inventory = currentPage
+  els.inventoryTable.innerHTML = visible.length
+    ? visible
         .map(item => `
           <tr>
             <td><strong>${item.sku}</strong></td>
@@ -1724,6 +1844,12 @@ const renderInventoryTable = (items: InventoryItem[]) => {
         `)
         .join('')
     : '<tr><td colspan="4">No empty or below-10 stock items.</td></tr>'
+  renderPagination(
+    els.inventoryPagination,
+    lowStock.length,
+    currentPage,
+    'inventory'
+  )
 }
 
 const renderInventorySummary = (
@@ -1781,11 +1907,13 @@ const refresh = async () => {
       String(analytics.webhooks.totalDeliveries)
 
     state.listings = listings
+    state.inventoryItems = inventory
+    state.auditEvents = events
     state.orders = orders
     renderPlatformSummary(analytics)
     renderQueueMetrics(queueMetrics)
     renderEvents(els.recentEvents, events, 5)
-    renderEvents(els.eventLog, events)
+    renderAuditPage(events)
     renderListings(listings)
     renderWebhooks(webhooks)
     renderInventorySummary(inventorySummary)
@@ -1801,6 +1929,12 @@ const refresh = async () => {
 }
 
 const switchTab = (tabId: string) => {
+  els.topbar.classList.toggle(
+    'is-hidden',
+    tabId !== 'overview'
+  )
+  els.pageTitle.textContent = 'E-Commerce Dashboard'
+
   els.navButtons.forEach(button => {
     button.classList.toggle(
       'is-active',
@@ -1837,6 +1971,45 @@ els.refreshButton.addEventListener(
   'click',
   () => void refresh()
 )
+
+document.addEventListener('click', event => {
+  const target = event.target
+
+  if (!(target instanceof Element)) {
+    return
+  }
+
+  const button = target.closest<HTMLButtonElement>(
+    '[data-page-key][data-page]'
+  )
+
+  if (!button || button.disabled) {
+    return
+  }
+
+  const pageKey = button.dataset.pageKey as
+    | keyof typeof state.pages
+    | undefined
+  const page = Number(button.dataset.page)
+
+  if (!pageKey || !Number.isFinite(page)) {
+    return
+  }
+
+  state.pages[pageKey] = page
+
+  if (pageKey === 'listings') {
+    renderListings(state.listings)
+  }
+
+  if (pageKey === 'inventory') {
+    renderInventoryTable(state.inventoryItems)
+  }
+
+  if (pageKey === 'audit') {
+    renderAuditPage(state.auditEvents)
+  }
+})
 
 els.platformSelect.addEventListener('change', () => {
   els.fieldSearch.value = ''
@@ -1880,6 +2053,9 @@ els.listingForm.addEventListener('submit', event => {
       form.get('platform')
     ) as ListingPlatform
     const sellerId = String(form.get('sellerId')).trim()
+    const webhookUrl = String(
+      form.get('webhookUrl') ?? ''
+    ).trim()
 
     try {
       const marketplaceFields = collectMarketplaceFields()
@@ -1915,6 +2091,7 @@ els.listingForm.addEventListener('submit', event => {
         ...(coreInput.quantity
           ? { quantity: coreInput.quantity }
           : {}),
+        ...(webhookUrl ? { webhookUrl } : {}),
         attributes: {
           brand: [{ value: coreInput.brand }],
           item_name: [{ value: coreInput.title }]

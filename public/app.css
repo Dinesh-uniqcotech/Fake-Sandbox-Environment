@@ -140,6 +140,10 @@ textarea {
   margin-bottom: 22px;
 }
 
+.topbar.is-hidden {
+  display: none;
+}
+
 .topbar h2 {
   margin-top: 3px;
   font-size: 30px;
@@ -339,7 +343,7 @@ textarea {
 
 .submission-row {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -649,6 +653,44 @@ textarea:focus {
   border-radius: 8px;
 }
 
+.pagination {
+  min-height: 38px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pagination-button {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pagination-button:hover {
+  background: var(--accent-soft);
+}
+
+.pagination-button.is-active {
+  color: #ffffff;
+  background: var(--accent);
+}
+
+.pagination-button:disabled {
+  color: #98a2b3;
+  cursor: not-allowed;
+  background: transparent;
+}
+
 table {
   width: 100%;
   min-width: 760px;
@@ -676,6 +718,18 @@ th {
 
 td {
   color: #253044;
+}
+
+.webhook-cell {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webhook-cell.is-empty {
+  color: var(--muted);
+  font-weight: 700;
 }
 
 tr:last-child td {

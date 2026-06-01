@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Marketplace Operations Console</title>
-    <link rel="stylesheet" href="/app.css?v=30" />
+    <link rel="stylesheet" href="/app.css?v=35" />
   </head>
   <body>
     <aside class="sidebar">
@@ -29,7 +29,7 @@
       <header class="topbar">
         <div>
         
-          <h2>E-Commerce Dashboard</h2>
+          <h2 id="pageTitle">E-Commerce Dashboard</h2>
         </div>
         <div class="topbar-actions">
           <span id="queueDriver" class="mini-pill">local</span>
@@ -97,7 +97,7 @@
           <section class="panel">
             <div class="panel-heading">
               <div>
-                <h3>Create Listing</h3>
+                <h1>Create Listing</h1>
               
               </div>
               <div class="field-search-bar">
@@ -115,6 +115,10 @@
                 <div class="form-row">
                   <label>Seller ID</label>
                   <input name="sellerId" value="SELLER123" required />
+                </div>
+                <div class="form-row">
+                  <label>Webhook URL</label>
+                  <input name="webhookUrl" type="url" placeholder="Optional notification URL" />
                 </div>
               </div>
 
@@ -147,6 +151,7 @@
                   <th>Inv SKU</th>
                   <th>Seller</th>
                   <th>Status</th>
+                  <th>Webhook</th>
                   <th>Created</th>
                   <th></th>
                 </tr>
@@ -154,6 +159,7 @@
               <tbody id="listingsTable"></tbody>
             </table>
           </div>
+          <div id="listingsPagination" class="pagination" aria-label="Listings pages"></div>
         </section>
       </section>
 
@@ -238,6 +244,7 @@
                 <tbody id="inventoryTable"></tbody>
               </table>
             </div>
+            <div id="inventoryPagination" class="pagination" aria-label="Inventory pages"></div>
           </section>
         </div>
       </section>
@@ -247,7 +254,7 @@
           <section class="panel">
             <div class="panel-heading">
               <div>
-                <h3>Marketplace Orders</h3>
+                <h1>Marketplace Orders</h1>
               </div>
             </div>
             <form id="simulatorForm" class="form">
@@ -299,11 +306,12 @@
         <section class="panel">
           <div class="panel-heading">
             <div>
-              <h3>Audit Logs</h3>
+              <h1>Audit Logs</h1>
             
             </div>
           </div>
           <div id="eventLog" class="timeline expanded"></div>
+          <div id="auditPagination" class="pagination" aria-label="Audit pages"></div>
         </section>
       </section>
 
@@ -311,7 +319,7 @@
         <section class="panel">
           <div class="panel-heading">
             <div>
-              <h3>Webhook History</h3>
+              <h1>Webhook History</h1>
              
             </div>
           </div>
@@ -347,6 +355,6 @@
         <div id="payloadPreview" class="payload-preview"></div>
       </section>
     </div>
-    <script src="/dist/app.js?v=30"></script>
+    <script src="/dist/app.js?v=35"></script>
   </body>
 </html>
